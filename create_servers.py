@@ -3,6 +3,7 @@
 in Rackspace"""
 
 import os
+import time
 import pyrax
 
 # Use my user level credentials
@@ -25,20 +26,53 @@ for instance_option in instance_list:
     if instance_option.name == '512MB Standard Instance':
         instance = instance_option
 
-#servers = []
-counter = 1
-node_name = 'jc-api-test-node' + str(counter)
-print node_name
-temp_server = cs.servers.create(node_name, centos.id, instance.id)
-server = pyrax.utils.wait_until(temp_server, 'status', ['ACTIVE', 'ERROR'], interval = 15, attempts = 40, verbose = False, verbose_atts = 'progress')
-if server:
-    if server.status == 'ACTIVE':
-        print 'Name: {0}'.format(server.name)
-        print 'Server status: {0}'.format(server.status)
-        print 'ID: {0}'.format(server.id)
-        print 'Admin Password: {0}'.format(server.adminPass)
-        print 'Networks: {0}'.format(server.networks)
-        print 'IPv4 address: {0}'.format(server.accessIPv4)
+building_servers = []
+building_passwords = []
+max_servers = 3
+# Start creating the servers
+for counter in range(max_servers):
+    node_name = 'jc-api-test-node' + str(counter)
+    print 'Creating {0}'.format(node_name)
+    building_servers.append(
+        cs.servers.create(node_name, centos.id, instance.id))
+    building_passwords.append(building_servers[counter].adminPass)
+
+# Wait 20 seconds
+time.sleep(20)
+
+# Wait until all of the servers are running
+server_list = []
+admin_passwords = []
+for server in range(len(building_servers)):
+    print 'Waiting for {0} to become active'.format(
+        building_servers[server].name)
+    finished_build = pyrax.utils.wait_until(building_servers[server],
+                                            'status', ['ACTIVE', 'ERROR'],
+                                            interval=30, attempts=5)
+    if finished_build.status == 'ACTIVE':
+        print 'Adding {0} to the server list'.format(finished_build.name)
+        server_list.append(finished_build)
+        admin_passwords.append(building_passwords[server])
     else:
-        server.delete()
-#servers.append(cs.servers.create(node_name, centos.id, instance.id))
+        print 'Server {0} error-ed during creation, so deleting'.format(
+            finished_build.name)
+        finished_build.delete()
+
+# Print out info for the servers
+for counter in range(len(server_list)):
+    server_list[counter] = cs.servers.get(server_list[counter].id)
+    print 'Name: {0}'.format(server_list[counter].name)
+    print 'Server status: {0}'.format(server_list[counter].status)
+    print 'ID: {0}'.format(server_list[counter].id)
+    print 'Admin Password: {0}'.format(admin_passwords[counter])
+    print 'Networks: {0}'.format(server_list[counter].networks)
+    print 'IPv4 address: {0}\n'.format(server_list[counter].accessIPv4)
+
+# Wait 1 minute
+#print 'Waiting 1 minute...'
+#time.sleep(60)
+
+# Now kill all of the remaining servers
+for counter in range(0, len(server_list)):
+    print 'Deleting {0}'.format(server_list[counter].name)
+    server_list[counter].delete()
