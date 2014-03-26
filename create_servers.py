@@ -3,11 +3,23 @@
 in Rackspace"""
 
 import os
+import getpass
 import time
+import ConfigParser
 import pyrax
 
-# Use my user level credentials
-creds_file = os.path.expanduser("~/.rackspace_cloud_credentials")
+# How many servers to start?
+# TODO: Having a command line option could be useful
+max_servers = 1
+
+# Read config file
+config_file_path = os.path.join('config')
+config = ConfigParser.ConfigParser()
+config.read(config_file_path)
+creds_file = os.path.expanduser(config.get('credentials', 'rackspace'))
+ssh_key_name = config.get('credentials', 'ssh_key_name')
+
+# Set the credentials for using Rackspace
 pyrax.set_setting("identity_type", "rackspace")
 pyrax.set_credential_file(creds_file)
 cs = pyrax.cloudservers
@@ -26,15 +38,16 @@ for instance_option in instance_list:
     if instance_option.name == '512MB Standard Instance':
         instance = instance_option
 
+# Start creating the servers
 building_servers = []
 building_passwords = []
-max_servers = 3
-# Start creating the servers
+username = getpass.getuser()
 for counter in range(max_servers):
-    node_name = 'jc-api-test-node' + str(counter)
+    node_name = '{0}-api-test-node{1}'.format(username, str(counter))
     print 'Creating {0}'.format(node_name)
     building_servers.append(
-        cs.servers.create(node_name, centos.id, instance.id))
+        cs.servers.create(node_name, centos.id, instance.id,
+                          key_name=ssh_key_name))
     building_passwords.append(building_servers[counter].adminPass)
 
 # Wait 20 seconds
@@ -54,7 +67,7 @@ for server in range(len(building_servers)):
         server_list.append(finished_build)
         admin_passwords.append(building_passwords[server])
     else:
-        print 'Server {0} error-ed during creation, so deleting'.format(
+        print 'Server {0} errored during creation, so deleting'.format(
             finished_build.name)
         finished_build.delete()
 
