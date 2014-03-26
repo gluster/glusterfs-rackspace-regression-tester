@@ -1,0 +1,3 @@
+[credentials]
+rackspace=~/.rackspace_cloud_credentials
+ssh_public_key=~/.ssh/id_rsa_rackspace.pub
