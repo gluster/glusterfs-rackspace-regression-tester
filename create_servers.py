@@ -25,9 +25,10 @@ def usage(error_string=None):
     print '{0}'.format(prog_name)
     print '{0} [options]'.format(prog_name)
     print
-    print '  -d | --delete          Delete the servers after creating them'
-    print '  -h | --help            Display usage'
-    print '  -n | --num_servers #   Create # number of servers'
+    print '  -c | --cloud_init <file>  Provides the file to cloud-init'
+    print '  -d | --delete             Delete the servers after creating them'
+    print '  -h | --help               Display usage'
+    print '  -n | --num_servers #      Create # number of servers'
     print
     print 'To create the default number of servers, use:'
     print
@@ -35,11 +36,19 @@ def usage(error_string=None):
     print
     print 'or to create a specific number of servers, use this:'
     print
-    print '  {0} --num-servers #'.format(prog_name)
+    print '  {0} --num_servers #'.format(prog_name)
+    print
+    print 'To pass the servers a cloud-init configuration file, use:'
+    print
+    print '  {0} --cloud_init file'.format(prog_name)
     print
     print 'For example:'
     print
-    print '  {0} --num-servers 5'.format(prog_name)
+    print '  {0} --num_servers 5'.format(prog_name)
+    print
+    print 'or'
+    print
+    print '  {0} --cloud_init myfile.cfg --num_servers 10'.format(prog_name)
     print
 
 
@@ -48,22 +57,28 @@ print 'Rackspace instance regression test timer: v{0}\n'.format(version)
 
 # Check the command line
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'dhn:',
-                               ['delete', 'help', 'num_servers='])
+    opts, args = getopt.getopt(sys.argv[1:], 'c:dhn:',
+                               ['cloud_init=', 'delete', 'help',
+                                'num_servers='])
 
 except getopt.GetoptError as err:
     # There was something wrong with the command line options
     usage(err)
     sys.exit(2)
 
-# Process any arguments
+# Process any command line options and arguments
+ci_config_obj = None
 for o, a in opts:
     if o in ("-h", "--help"):
         usage()
         sys.exit()
+    elif o in ("-c", "--cloud_init"):
+        ci_config_path = os.path.expanduser(a)
+        ci_config_obj = open(ci_config_path, 'r')
+        ci_config = ci_config_obj.read()
     elif o in ("-n", "--num_servers"):
         max_servers = int(a)
-    elif o in ("-d", "--deleete"):
+    elif o in ("-d", "--delete"):
         delete_servers = True
     else:
         assert False, "Unknown command line option"
@@ -76,6 +91,7 @@ config_file_path = os.path.join('config')
 config = ConfigParser.ConfigParser()
 config.read(config_file_path)
 creds_file = os.path.expanduser(config.get('credentials', 'rackspace'))
+ssh_key_file = os.path.expanduser(config.get('credentials', 'ssh_key_file'))
 ssh_key_name = config.get('credentials', 'ssh_key_name')
 
 # Set the credentials for using Rackspace
@@ -104,9 +120,17 @@ username = getpass.getuser()
 for counter in range(max_servers):
     node_name = '{0}-api-test-node{1}'.format(username, str(counter))
     print 'Creating {0}'.format(node_name)
-    building_servers.append(
-        cs.servers.create(node_name, centos.id, instance.id,
-                          key_name=ssh_key_name))
+    if ci_config:
+        # Create a server + supply a cloud-init config
+        building_servers.append(
+            cs.servers.create(node_name, centos.id, instance.id,
+                              key_name=ssh_key_name, config_drive=True,
+                              userdata=ci_config))
+    else:
+        # Create a server without a cloud-init config
+        building_servers.append(
+            cs.servers.create(node_name, centos.id, instance.id,
+                              key_name=ssh_key_name))
     building_passwords.append(building_servers[counter].adminPass)
 
 # Wait 20 seconds (seems to help)
@@ -126,7 +150,7 @@ for server in range(len(building_servers)):
 
     # Check which error status it became
     if finished_build.status == 'ACTIVE':
-        print 'Adding {0} to the server list'.format(finished_build.name)
+        print 'Success, {0} built correctly'.format(finished_build.name)
 
         # Add the server to the full list
         server_list.append(finished_build)
@@ -146,7 +170,8 @@ for counter in range(len(server_list)):
     print 'Server id: {0}'.format(server_list[counter].id)
     print 'IPv4 address: {0}'.format(ip_addr)
     print 'Root password: {0}'.format(admin_passwords[counter])
-    print 'SSH command: ssh -l root -i "{0}" {1}'.format(creds_file, ip_addr)
+    print('SSH command: ssh -l root -i {0} -o UserKnownHostsFile=/dev/null '
+          '-o StrictHostKeyChecking=no {1}'.format(ssh_key_file, ip_addr))
     print
 
 # If requested, delete the servers (useful when testing)

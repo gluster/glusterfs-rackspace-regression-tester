@@ -1,3 +1,4 @@
 [credentials]
 rackspace=~/.rackspace_cloud_credentials
 ssh_key_name=JustinsSSHKey
+ssh_key_file=~/.ssh/id_rsa_rackspace
