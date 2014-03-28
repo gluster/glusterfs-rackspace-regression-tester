@@ -11,6 +11,7 @@ import ConfigParser
 import pyrax
 
 version = '0.0.1'
+instance_type = '2 GB Performance'
 max_servers = 1
 delete_servers = False
 
@@ -29,6 +30,7 @@ def usage(error_string=None):
     print '  -d | --delete             Delete the servers after creating them'
     print '  -h | --help               Display usage'
     print '  -n | --num_servers #      Create # number of servers'
+    print '  -t | --type <type of vm>  Type of server instance to create'
     print
     print 'To create the default number of servers, use:'
     print
@@ -48,7 +50,11 @@ def usage(error_string=None):
     print
     print 'or'
     print
-    print '  {0} --cloud_init myfile.cfg --num_servers 10'.format(prog_name)
+    print '  {0} --cloud_init cloud_init.cfg -n 10'.format(prog_name)
+    print
+    print 'or'
+    print
+    print '  {0} -c cloud_init.cfg -t "1 GB Performance"'.format(prog_name)
     print
 
 
@@ -57,9 +63,9 @@ print 'Rackspace instance regression test timer: v{0}\n'.format(version)
 
 # Check the command line
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'c:dhn:',
+    opts, args = getopt.getopt(sys.argv[1:], 'c:dhn:t:',
                                ['cloud_init=', 'delete', 'help',
-                                'num_servers='])
+                                'num_servers=', 'type'])
 
 except getopt.GetoptError as err:
     # There was something wrong with the command line options
@@ -76,14 +82,16 @@ for o, a in opts:
         ci_config_path = os.path.expanduser(a)
         ci_config_obj = open(ci_config_path, 'r')
         ci_config = ci_config_obj.read()
-    elif o in ("-n", "--num_servers"):
-        max_servers = int(a)
     elif o in ("-d", "--delete"):
+        delete_servers = True
+    elif o in ("-n", "--num_servers"):
+        instance_type = a
+    elif o in ("-t", "--type"):
         delete_servers = True
     else:
         assert False, "Unknown command line option"
 
-print "Creating {0} servers...".format(max_servers)
+print "Creating {0} x {1} servers...".format(max_servers, instance_type)
 print
 
 # Read config file
@@ -106,11 +114,11 @@ for os_option in os_list:
     if os_option.name == 'CentOS 6.5':
         centos = os_option
 
-# Select a 1GB instance
+# Select an instance type
 instance = None
 instance_list = cs.flavors.list()
 for instance_option in instance_list:
-    if instance_option.name == '1 GB Performance':
+    if instance_option.name == instance_type:
         instance = instance_option
 
 # Start creating the servers
