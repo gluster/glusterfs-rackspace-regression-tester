@@ -106,11 +106,11 @@ for os_option in os_list:
     if os_option.name == 'CentOS 6.5':
         centos = os_option
 
-# Select a 512MB instance
+# Select a 1GB instance
 instance = None
 instance_list = cs.flavors.list()
 for instance_option in instance_list:
-    if instance_option.name == '512MB Standard Instance':
+    if instance_option.name == '1 GB Performance':
         instance = instance_option
 
 # Start creating the servers
@@ -146,9 +146,9 @@ for server in range(len(building_servers)):
     # Wait for the given server to become either ACTIVE or ERROR status
     finished_build = pyrax.utils.wait_until(building_servers[server],
                                             'status', ['ACTIVE', 'ERROR'],
-                                            interval=30, attempts=5)
+                                            interval=30, attempts=8)
 
-    # Check which error status it became
+    # Check which status it changed to
     if finished_build.status == 'ACTIVE':
         print 'Success, {0} built correctly'.format(finished_build.name)
 
@@ -167,7 +167,7 @@ for counter in range(len(server_list)):
     server_list[counter] = cs.servers.get(server_list[counter].id)
     ip_addr = server_list[counter].accessIPv4
     print 'Server name: {0}'.format(server_list[counter].name)
-    print 'Server id: {0}'.format(server_list[counter].id)
+    print 'Server ID: {0}'.format(server_list[counter].id)
     print 'IPv4 address: {0}'.format(ip_addr)
     print 'Root password: {0}'.format(admin_passwords[counter])
     print('SSH command: ssh -l root -i {0} -o UserKnownHostsFile=/dev/null '
