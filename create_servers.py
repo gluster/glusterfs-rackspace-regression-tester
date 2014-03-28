@@ -122,7 +122,8 @@ for instance_option in instance_list:
         instance = instance_option
 if not instance:
     print('ERROR: The requested instance type "{0}" '
-          'doesn\'t exist'.format(instance_type))
+          'does not exist'.format(instance_type))
+    sys.exit(2)
 
 # Start creating the servers
 building_servers = []
