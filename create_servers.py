@@ -85,9 +85,9 @@ for o, a in opts:
     elif o in ("-d", "--delete"):
         delete_servers = True
     elif o in ("-n", "--num_servers"):
-        instance_type = a
+        max_servers = a
     elif o in ("-t", "--type"):
-        delete_servers = True
+        instance_type = a
     else:
         assert False, "Unknown command line option"
 
@@ -120,6 +120,9 @@ instance_list = cs.flavors.list()
 for instance_option in instance_list:
     if instance_option.name == instance_type:
         instance = instance_option
+if not instance:
+    print('ERROR: The requested instance type "{0}" '
+          'doesn\'t exist'.format(instance_type))
 
 # Start creating the servers
 building_servers = []
