@@ -73,6 +73,7 @@ except getopt.GetoptError as err:
     sys.exit(2)
 
 # Process any command line options and arguments
+ci_config = None
 ci_config_obj = None
 for o, a in opts:
     if o in ("-h", "--help"):
@@ -125,6 +126,32 @@ if not instance:
           'does not exist'.format(instance_type))
     sys.exit(2)
 
+# Cloud-init config fragment we need to inject
+fragment = """cloud_config_modules:
+ - mounts
+ - locale
+ - set-passwords
+ - package-update-upgrade-install
+ - timezone
+ - puppet
+ - chef
+ - salt-minion
+ - mcollective
+ - disable-ec2-metadata
+ - runcmd
+"""
+
+# Files we inject into the VM
+#   * 01_rpm-packages.cfg is the above fragment.  It's purely to add the
+#       "package-update-upgrade-install" module, which isn't provided by
+#       Rackspace by default.  This module lets yum update the system and
+#       kernel, which we actually need.
+#  * /var/run/reboot-required is to address a bug in cloud-utils 0.7.4, which
+#       won't reboot the system unless this file is present when it runs.
+#       It's just a flag file, so being empty is fine.
+files = {'/etc/cloud/cloud.cfg.d/01_rpm_packages.cfg': fragment,
+         '/var/run/reboot-required': ''}
+
 # Start creating the servers
 building_servers = []
 building_passwords = []
@@ -136,8 +163,8 @@ for counter in range(max_servers):
         # Create a server + supply a cloud-init config
         building_servers.append(
             cs.servers.create(node_name, centos.id, instance.id,
-                              key_name=ssh_key_name, config_drive=True,
-                              userdata=ci_config))
+                              key_name=ssh_key_name, files=files,
+                              config_drive=True, userdata=ci_config))
     else:
         # Create a server without a cloud-init config
         building_servers.append(
