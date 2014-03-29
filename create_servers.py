@@ -86,7 +86,7 @@ for o, a in opts:
     elif o in ("-d", "--delete"):
         delete_servers = True
     elif o in ("-n", "--num_servers"):
-        max_servers = a
+        max_servers = int(a)
     elif o in ("-t", "--type"):
         instance_type = a
     else:
@@ -126,24 +126,31 @@ if not instance:
           'does not exist'.format(instance_type))
     sys.exit(2)
 
-# /var/run/reboot-required is to address a bug in cloud-utils 0.7.4, which
-# won't reboot the system unless this file is present when run.  It's just a
-# flag file, so being empty is fine.
-files = {'/var/run/reboot-required': ''}
-
 # Start creating the servers
 building_servers = []
 building_passwords = []
 username = getpass.getuser()
 for counter in range(max_servers):
     node_name = '{0}-api-test-node{1}'.format(username, str(counter))
+
+    # Set the hostname and fully qualified domain name via cloud-config data
+    fqdn = 'hostname: {0}\nfqdn: {0}.cloud.gluster.org\n'.format(node_name)
+    ci_config_fqdn = ci_config + fqdn
+
+    # Files to be injected info the new image
+    # * /var/run/reboot-required is to address a bug in cloud-utils 0.7.4,
+    #   which won't reboot the system unless this file is present when run.
+    #   It's just a flag file, so being empty is fine.
+    #   It can be removed when this bug is fixed in available cloud-utils.
+    files = {'/var/run/reboot-required': ''}
+
     print 'Creating {0}'.format(node_name)
     if ci_config:
         # Create a server + supply a cloud-init config
         building_servers.append(
             cs.servers.create(node_name, centos.id, instance.id,
                               key_name=ssh_key_name, files=files,
-                              config_drive=True, userdata=ci_config))
+                              config_drive=True, userdata=ci_config_fqdn))
     else:
         # Create a server without a cloud-init config
         building_servers.append(
