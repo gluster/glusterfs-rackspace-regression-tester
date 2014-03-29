@@ -11,7 +11,7 @@ import ConfigParser
 import pyrax
 
 version = '0.0.1'
-instance_type = '2 GB Performance'
+instance_type = '1 GB Performance'
 max_servers = 1
 delete_servers = False
 
@@ -136,7 +136,7 @@ building_servers = []
 building_passwords = []
 username = getpass.getuser()
 for counter in range(max_servers):
-    node_name = '{0}-api-test70-node{1}'.format(username, str(counter))
+    node_name = '{0}-api-test-node{1}'.format(username, str(counter))
     print 'Creating {0}'.format(node_name)
     if ci_config:
         # Create a server + supply a cloud-init config
