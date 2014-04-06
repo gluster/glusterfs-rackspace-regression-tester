@@ -10,10 +10,11 @@ import time
 import ConfigParser
 import pyrax
 
-version = '0.0.1'
+version = '0.0.3'
 instance_type = '1 GB Performance'
 max_servers = 1
-delete_servers = False
+remove_servers = False
+debug_tests = False
 
 
 def usage(error_string=None):
@@ -27,10 +28,13 @@ def usage(error_string=None):
     print '{0} [options]'.format(prog_name)
     print
     print '  -c | --cloud_init <file>  Provides the file to cloud-init'
-    print '  -d | --delete             Delete the servers after creating them'
+    print '  -d | --debug              Sets the DEBUG variable for the tests'
+    print '  -f | --flavour <string>   Flavour of server instance to create'
     print '  -h | --help               Display usage'
     print '  -n | --num_servers #      Create # number of servers'
-    print '  -t | --type <type of vm>  Type of server instance to create'
+    print '  -r | --remove             Remove the servers after creating them'
+    print '  -s | --script-url <URL>   Runs this script after server creation'
+    print '  -t | --test <path>        Runs only a specific test'
     print
     print 'To create the default number of servers, use:'
     print
@@ -54,7 +58,12 @@ def usage(error_string=None):
     print
     print 'or'
     print
-    print '  {0} -c cloud_init.cfg -t "1 GB Performance"'.format(prog_name)
+    print '  {0} -c cloud_init.cfg -flavour ' \
+          '"1 GB Performance"'.format(prog_name)
+    print
+    print 'or'
+    print
+    print '  {0} -c cloud_init.cfg -t tests/basic/rpm.t'.format(prog_name)
     print
 
 
@@ -63,7 +72,7 @@ print 'Rackspace instance regression test timer: v{0}\n'.format(version)
 
 # Check the command line
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'c:dhn:t:',
+    opts, args = getopt.getopt(sys.argv[1:], 'c:df:hn:s:t:',
                                ['cloud_init=', 'delete', 'help',
                                 'num_servers=', 'type'])
 
@@ -73,22 +82,27 @@ except getopt.GetoptError as err:
     sys.exit(2)
 
 # Process any command line options and arguments
-ci_config = None
-ci_config_obj = None
+ci_config_path = None
+script_url = None
+test_path = None
 for o, a in opts:
     if o in ("-h", "--help"):
         usage()
         sys.exit()
     elif o in ("-c", "--cloud_init"):
         ci_config_path = os.path.expanduser(a)
-        ci_config_obj = open(ci_config_path, 'r')
-        ci_config = ci_config_obj.read()
-    elif o in ("-d", "--delete"):
-        delete_servers = True
+    elif o in ("-d", "--debug"):
+        debug_tests = True
+    elif o in ("-f", "--flavour"):
+        instance_type = a
     elif o in ("-n", "--num_servers"):
         max_servers = int(a)
-    elif o in ("-t", "--type"):
-        instance_type = a
+    elif o in ("-r", "--remove"):
+        remove_servers = True
+    elif o in ("-s", "--script-url"):
+        script_url = a
+    elif o in ("-t", "--test"):
+        test_path = a
     else:
         assert False, "Unknown command line option"
 
@@ -104,7 +118,7 @@ ssh_key_file = os.path.expanduser(config.get('credentials', 'ssh_key_file'))
 ssh_key_name = config.get('credentials', 'ssh_key_name')
 
 # Set the credentials for using Rackspace
-pyrax.set_setting("identity_type", "rackspace")
+pyrax.set_setting('identity_type', 'rackspace')
 pyrax.set_credential_file(creds_file)
 cs = pyrax.cloudservers
 
@@ -126,36 +140,51 @@ if not instance:
           'does not exist'.format(instance_type))
     sys.exit(2)
 
+# Read the cloud-init configuration file
+ci_config = None
+if ci_config_path:
+        ci_config = open(ci_config_path, 'r').read()
+
+# Add the script_url if one was given
+meta = {'test_path': ''}
+if script_url:
+    meta['script_url'] = script_url
+    ci_config += script_url + '\n'
+
+# Add the test path if one was given
+if test_path:
+    meta['test_path'] = test_path
+
+# If debug mode was requested, pass that via metadata
+if debug_tests:
+    meta['debug_tests'] = 'True'
+
+# Files to be injected info the new image
+# * /var/run/reboot-required is to address a bug in cloud-utils 0.7.4,
+#   which won't reboot the system unless this file is present when run.
+#   It's just a flag file, so being empty is fine.
+#   It can be removed when this bug is fixed in available cloud-utils.
+files = {'/var/run/reboot-required': ''}
+
 # Start creating the servers
 building_servers = []
 building_passwords = []
 username = getpass.getuser()
 for counter in range(max_servers):
-    node_name = '{0}-api-test-node{1}'.format(username, str(counter))
-
-    # Set the hostname and fully qualified domain name via cloud-config data
-    fqdn = 'hostname: {0}\nfqdn: {0}.cloud.gluster.org\n'.format(node_name)
-    ci_config_fqdn = ci_config + fqdn
-
-    # Files to be injected info the new image
-    # * /var/run/reboot-required is to address a bug in cloud-utils 0.7.4,
-    #   which won't reboot the system unless this file is present when run.
-    #   It's just a flag file, so being empty is fine.
-    #   It can be removed when this bug is fixed in available cloud-utils.
-    files = {'/var/run/reboot-required': ''}
+    node_name = '{0}{1}'.format(username, str(counter))
 
     print 'Creating {0}'.format(node_name)
     if ci_config:
-        # Create a server + supply a cloud-init config
         building_servers.append(
             cs.servers.create(node_name, centos.id, instance.id,
                               key_name=ssh_key_name, files=files,
-                              config_drive=True, userdata=ci_config_fqdn))
+                              config_drive=True, userdata=ci_config,
+                              meta=meta))
     else:
         # Create a server without a cloud-init config
         building_servers.append(
             cs.servers.create(node_name, centos.id, instance.id,
-                              key_name=ssh_key_name))
+                              key_name=ssh_key_name, meta=meta))
     building_passwords.append(building_servers[counter].adminPass)
 
 # Wait 20 seconds (seems to help)
@@ -171,7 +200,7 @@ for server in range(len(building_servers)):
     # Wait for the given server to become either ACTIVE or ERROR status
     finished_build = pyrax.utils.wait_until(building_servers[server],
                                             'status', ['ACTIVE', 'ERROR'],
-                                            interval=30, attempts=8)
+                                            interval=30, attempts=10)
 
     # Check which status it changed to
     if finished_build.status == 'ACTIVE':
@@ -199,8 +228,8 @@ for counter in range(len(server_list)):
           '-o StrictHostKeyChecking=no {1}'.format(ssh_key_file, ip_addr))
     print
 
-# If requested, delete the servers (useful when testing)
-if delete_servers:
+# If requested, remove the servers (useful when testing)
+if remove_servers:
     for counter in range(0, len(server_list)):
         print 'Deleting {0}'.format(server_list[counter].name)
         server_list[counter].delete()
