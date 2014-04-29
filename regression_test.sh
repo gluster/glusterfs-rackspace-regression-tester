@@ -55,17 +55,29 @@ fi
 mkfs.xfs -i size=512 -f ${FS_DEVICE} >> ${COMMAND_LOG} 2>&1
 mount ${FS_MOUNT_OPTIONS} ${FS_DEVICE} /d >> ${COMMAND_LOG} 2>&1
 
+# Is there a specific branch of GlusterFS we should use?
+GLUSTERFS_BRANCH=`metadata_retriever.py glusterfs_branch 2>/dev/null`
+if [ x"$GLUSTERFS_BRANCH" = x'' ]; then
+    export GLUSTERFS_BRANCH='master'
+fi
+
+# TODO: Remove this once http://review.gluster.org/#/c/7564/ is merged
+# Workaround for GlusterFS release-3.x branch not compiling EPEL-7 yet
+if [ x"$GLUSTERFS_BRANCH" = x'release-3.4' -o x"$GLUSTERFS_BRANCH" = x'release-3.5' ]; then
+    rm -f /etc/mock/epel-7-x86_64.cfg
+fi
+
 # Prepare for building Gluster and running the tests
 mkdir -p /d/archived_builds >> ${COMMAND_LOG} 2>&1
 mkdir -p /d/build >> ${COMMAND_LOG} 2>&1
 ln -s /d/build /build >> ${COMMAND_LOG} 2>&1
-git clone git://git.gluster.org/glusterfs.git /root/glusterfs >> ${COMMAND_LOG} 2>&1
+git clone -b ${GLUSTERFS_BRANCH} git://git.gluster.org/glusterfs.git /root/glusterfs >> ${COMMAND_LOG} 2>&1
 git clone git://forge.gluster.org/gluster-patch-acceptance-tests/gluster-patch-acceptance-tests.git /opt/ >> ${COMMAND_LOG} 2>&1
 cd /root/glusterfs >> ${COMMAND_LOG} 2>&1
 chmod 755 /root >> ${COMMAND_LOG} 2>&1
 
 # Build Gluster, install it under /d/build/install
-echo 'build' >> ${PROGRESS_LOG}
+echo "build - using GlusterFS '${GLUSTERFS_BRANCH}' branch" >> ${PROGRESS_LOG}
 time /opt/qa/build.sh >> ${BUILD_LOG} 2>&1
 
 # Run the smoke tests

@@ -27,6 +27,7 @@ def usage(error_string=None):
     print '{0}'.format(prog_name)
     print '{0} [options]'.format(prog_name)
     print
+    print '  -b | --branch <string>    Uses git HEAD for the given branch'
     print '  -c | --cloud_init <file>  Provides the file to cloud-init'
     print '  -d | --debug              Sets the DEBUG variable for the tests'
     print '  -f | --flavour <string>   Flavour of server instance to create'
@@ -72,7 +73,7 @@ print 'Rackspace instance regression test timer: v{0}\n'.format(version)
 
 # Check the command line
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'c:df:hn:s:t:',
+    opts, args = getopt.getopt(sys.argv[1:], 'b:c:df:hn:s:t:',
                                ['cloud_init=', 'delete', 'help',
                                 'num_servers=', 'type'])
 
@@ -82,6 +83,7 @@ except getopt.GetoptError as err:
     sys.exit(2)
 
 # Process any command line options and arguments
+git_branch = 'master'
 ci_config_path = None
 script_url = None
 test_path = None
@@ -89,6 +91,8 @@ for o, a in opts:
     if o in ("-h", "--help"):
         usage()
         sys.exit()
+    elif o in ("-b", "--branch"):
+        git_branch = a
     elif o in ("-c", "--cloud_init"):
         ci_config_path = os.path.expanduser(a)
     elif o in ("-d", "--debug"):
@@ -158,6 +162,9 @@ if test_path:
 # If debug mode was requested, pass that via metadata
 if debug_tests:
     meta['debug_tests'] = 'True'
+
+# Pass the desired git branch name via metadata
+meta['glusterfs_branch'] = git_branch
 
 # Files to be injected info the new image
 # * /var/run/reboot-required is to address a bug in cloud-utils 0.7.4,
