@@ -10,7 +10,7 @@ import time
 import ConfigParser
 import pyrax
 
-version = '0.0.3'
+version = '0.0.4'
 instance_type = '1 GB Performance'
 max_servers = 1
 remove_servers = False
@@ -31,6 +31,8 @@ def usage(error_string=None):
     print '  -c | --cloud_init <file>  Provides the file to cloud-init'
     print '  -d | --debug              Sets the DEBUG variable for the tests'
     print '  -f | --flavour <string>   Flavour of server instance to create'
+    print "                            Use 'list' to show available flavours"
+    print '  -g | --gerrit <change #>  Gerrit change request number'
     print '  -h | --help               Display usage'
     print '  -n | --num_servers #      Create # number of servers'
     print '  -r | --remove             Remove the servers after creating them'
@@ -49,7 +51,11 @@ def usage(error_string=None):
     print
     print '  {0} --cloud_init file'.format(prog_name)
     print
-    print 'For example:'
+    print 'To show the available instance flavours, use:'
+    print
+    print '  {0} -f list'.format(prog_name)
+    print
+    print 'Examples:'
     print
     print '  {0} --num_servers 5'.format(prog_name)
     print
@@ -73,7 +79,7 @@ print 'Rackspace instance regression test timer: v{0}\n'.format(version)
 
 # Check the command line
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'b:c:df:hn:s:t:',
+    opts, args = getopt.getopt(sys.argv[1:], 'b:c:df:g:hn:s:t:',
                                ['cloud_init=', 'delete', 'help',
                                 'num_servers=', 'type'])
 
@@ -82,9 +88,10 @@ except getopt.GetoptError as err:
     usage(err)
     sys.exit(2)
 
-# Process any command line options and arguments
-git_branch = 'master'
+# Parse any command line options and arguments
 ci_config_path = None
+change_req = None
+git_branch = 'master'
 script_url = None
 test_path = None
 for o, a in opts:
@@ -99,6 +106,8 @@ for o, a in opts:
         debug_tests = True
     elif o in ("-f", "--flavour"):
         instance_type = a
+    elif o in ("-g", "--gerrit"):
+        change_req = a
     elif o in ("-n", "--num_servers"):
         max_servers = int(a)
     elif o in ("-r", "--remove"):
@@ -110,8 +119,9 @@ for o, a in opts:
     else:
         assert False, "Unknown command line option"
 
-print "Creating {0} x {1} servers...".format(max_servers, instance_type)
-print
+if instance_type != 'list':
+    print "Creating {0} x {1} servers...".format(max_servers, instance_type)
+    print
 
 # Read config file
 config_file_path = os.path.join('config')
@@ -136,6 +146,12 @@ for os_option in os_list:
 # Select an instance type
 instance = None
 instance_list = cs.flavors.list()
+if instance_type == 'list':
+    print 'Available flavours:'
+    for instance_option in instance_list:
+        print instance_option.name
+    print
+    sys.exit(0)
 for instance_option in instance_list:
     if instance_option.name == instance_type:
         instance = instance_option
@@ -166,6 +182,10 @@ if debug_tests:
 # Pass the desired git branch name via metadata
 meta['glusterfs_branch'] = git_branch
 
+# Pass the desired gerrit change request via metadata
+if gerrit_cr:
+    meta['change_req'] = change_req
+
 # Files to be injected info the new image
 # * /var/run/reboot-required is to address a bug in cloud-utils 0.7.4,
 #   which won't reboot the system unless this file is present when run.
@@ -178,6 +198,7 @@ building_servers = []
 building_passwords = []
 username = getpass.getuser()
 for counter in range(max_servers):
+    # Set the name of the VM in Rackspace
     node_name = '{0}{1}'.format(username, str(counter))
 
     print 'Creating {0}'.format(node_name)
