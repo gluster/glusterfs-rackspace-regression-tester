@@ -75,7 +75,7 @@ def usage(error_string=None):
 
 
 # Display a startup banner
-print 'Rackspace instance regression test timer: v{0}\n'.format(version)
+print 'Rackspace instance regression test launcher: v{0}\n'.format(version)
 
 # Check the command line
 try:
@@ -210,7 +210,12 @@ building_passwords = []
 username = getpass.getuser()
 for counter in range(max_servers):
     # Set the name of the VM in Rackspace
-    node_name = '{0}{1}'.format(username, str(counter))
+    if change_req:
+        # Name the VM after the change request
+        node_name = 'gerrit{0}'.format(change_req)
+    else:
+        # No change request, so name the VM after the user
+        node_name = '{0}{1}'.format(username, str(counter))
 
     print 'Creating {0}'.format(node_name)
     if ci_config:
