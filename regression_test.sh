@@ -95,9 +95,16 @@ if [ x"$GERRIT_CR" != x'' ]; then
         git checkout origin/${GLUSTERFS_BRANCH}
         git fetch origin ${GIT_REF}
         git cherry-pick --allow-empty --keep-redundant-commits origin/${GLUSTERFS_BRANCH}..FETCH_HEAD
+        RESULT=$?
 
         # Add info to the progress log
-        echo "Gerrit CR $GERRIT_CR applied to '${GLUSTERFS_BRANCH}' branch" >> ${PROGRESS_LOG}
+        if [ "$RESULT" -eq 0 ]; then
+            echo "Gerrit CR $GERRIT_CR applied to '${GLUSTERFS_BRANCH}' branch" >> ${PROGRESS_LOG}
+        else
+            # The requested CR didn't apply cleanly
+            echo "Gerrit CR $GERRIT_CR - MERGE CONFLICT on '${GLUSTERFS_BRANCH}' branch" >> ${PROGRESS_LOG}
+            exit 1
+        fi
     fi
 fi
 
