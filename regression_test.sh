@@ -61,6 +61,12 @@ if [ x"$GLUSTERFS_BRANCH" = x'' ]; then
     export GLUSTERFS_BRANCH='master'
 fi
 
+# Extract Gerrit Change Request # if there is one
+GERRIT_CR=`metadata_retriever.py change_req 2>/dev/null`
+
+# Extract Git ref if there is one
+GIT_REF=`metadata_retriever.py change_ref 2>/dev/null`
+
 # TODO: Remove this once http://review.gluster.org/#/c/7564/ is merged
 # Workaround for GlusterFS release-3.x branch not compiling EPEL-7 yet
 if [ x"$GLUSTERFS_BRANCH" = x'release-3.4' -o x"$GLUSTERFS_BRANCH" = x'release-3.5' ]; then
@@ -71,10 +77,29 @@ fi
 mkdir -p /d/archived_builds >> ${COMMAND_LOG} 2>&1
 mkdir -p /d/build >> ${COMMAND_LOG} 2>&1
 ln -s /d/build /build >> ${COMMAND_LOG} 2>&1
-git clone -b ${GLUSTERFS_BRANCH} git://git.gluster.org/glusterfs.git /root/glusterfs >> ${COMMAND_LOG} 2>&1
+git clone -b ${GLUSTERFS_BRANCH} http://review.gluster.org/glusterfs /root/glusterfs >> ${COMMAND_LOG} 2>&1
 git clone git://forge.gluster.org/gluster-patch-acceptance-tests/gluster-patch-acceptance-tests.git /opt/ >> ${COMMAND_LOG} 2>&1
 cd /root/glusterfs >> ${COMMAND_LOG} 2>&1
 chmod 755 /root >> ${COMMAND_LOG} 2>&1
+
+# If we've been given a Gerrit CR to test, then get it ready
+if [ x"$GERRIT_CR" != x'' ]; then
+    if [ x"$GIT_REF" != x'' ]; then
+
+        # Install RPMforge version of git
+        yum -y install http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el6.rf.x86_64.rpm
+        yum -y --enablerepo=rpmforge-extras install git
+
+        # Prepare the patch for testing
+        git fetch origin
+        git checkout origin/${GLUSTERFS_BRANCH}
+        git fetch origin ${GIT_REF}
+        git cherry-pick --allow-empty --keep-redundant-commits origin/${GLUSTERFS_BRANCH}..FETCH_HEAD
+
+        # Add info to the progress log
+        echo "Gerrit CR $GERRIT_CR applied to '${GLUSTERFS_BRANCH}' branch" >> ${PROGRESS_LOG}
+    fi
+fi
 
 # Build Gluster, install it under /d/build/install
 echo "build - using GlusterFS '${GLUSTERFS_BRANCH}' branch" >> ${PROGRESS_LOG}
