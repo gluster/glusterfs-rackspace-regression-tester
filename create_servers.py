@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Times how long the GlusterFS regression test takes for each instance type
-in Rackspace"""
+"""Run the GlusterFS regression test in Rackspace"""
 
 import os
 import sys
@@ -9,6 +8,7 @@ import getpass
 import time
 import ConfigParser
 import pyrax
+from pygerrit.rest import GerritRestAPI
 
 version = '0.0.4'
 instance_type = '1 GB Performance'
@@ -179,12 +179,23 @@ if test_path:
 if debug_tests:
     meta['debug_tests'] = 'True'
 
+# Pass the desired gerrit change request info via metadata
+if change_req:
+    # Retrieve the Gerrit ref info for the change request
+    gerrit_server = GerritRestAPI(url='http://review.gluster.org')
+    gerrit_request = '/changes/?q={0}&o=CURRENT_REVISION'.format(change_req)
+    rev = gerrit_server.get(gerrit_request)
+    ref = rev[0]['revisions'][rev[0]['revisions'].keys()[0]]['fetch']['http']['ref']
+
+    # Pass the Gerrit Change Request # and the matching git reference
+    meta['change_req'] = change_req
+    meta['change_ref'] = ref
+
+    # Ensure we have the matching git branch
+    git_branch = rev[0]['branch']
+
 # Pass the desired git branch name via metadata
 meta['glusterfs_branch'] = git_branch
-
-# Pass the desired gerrit change request via metadata
-if gerrit_cr:
-    meta['change_req'] = change_req
 
 # Files to be injected info the new image
 # * /var/run/reboot-required is to address a bug in cloud-utils 0.7.4,
