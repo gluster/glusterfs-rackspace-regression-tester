@@ -49,7 +49,7 @@ def usage(error_string=None):
     print
     print 'To pass the servers a cloud-init configuration file, use:'
     print
-    print '  {0} --cloud_init file'.format(prog_name)
+    print '  {0} --c config_file'.format(prog_name)
     print
     print 'To show the available instance flavours, use:'
     print
@@ -61,16 +61,18 @@ def usage(error_string=None):
     print
     print 'or'
     print
-    print '  {0} --cloud_init cloud_init.cfg -n 10'.format(prog_name)
+    print '  {0} --cloud_init configs/remote_centos6.cfg ' \
+          '-n 10'.format(prog_name)
     print
     print 'or'
     print
-    print '  {0} -c cloud_init.cfg -flavour ' \
-          '"1 GB Performance"'.format(prog_name)
+    print '  {0} -c configs/remote_centos6.cfg ' \
+          '-flavour "1 GB Performance"'.format(prog_name)
     print
     print 'or'
     print
-    print '  {0} -c cloud_init.cfg -t tests/basic/rpm.t'.format(prog_name)
+    print '  {0} -c configs/remote_centos6.cfg ' \
+          '-t tests/basic/rpm.t'.format(prog_name)
     print
 
 
