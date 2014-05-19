@@ -78,7 +78,7 @@ mkdir -p /d/archived_builds >> ${COMMAND_LOG} 2>&1
 mkdir -p /d/build >> ${COMMAND_LOG} 2>&1
 ln -s /d/build /build >> ${COMMAND_LOG} 2>&1
 git clone -b ${GLUSTERFS_BRANCH} http://review.gluster.org/glusterfs /root/glusterfs >> ${COMMAND_LOG} 2>&1
-git clone git://forge.gluster.org/gluster-patch-acceptance-tests/gluster-patch-acceptance-tests.git /opt/ >> ${COMMAND_LOG} 2>&1
+git clone git://forge.gluster.org/gluster-patch-acceptance-tests/gluster-patch-acceptance-tests.git /opt/qa >> ${COMMAND_LOG} 2>&1
 cd /root/glusterfs >> ${COMMAND_LOG} 2>&1
 chmod 755 /root >> ${COMMAND_LOG} 2>&1
 
