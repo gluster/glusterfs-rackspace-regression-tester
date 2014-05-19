@@ -83,7 +83,7 @@ cd /root/glusterfs >> ${COMMAND_LOG} 2>&1
 chmod 755 /root >> ${COMMAND_LOG} 2>&1
 
 # If we've been given a Gerrit CR to test, then get it ready
-if [ x"$GERRIT_CR" != x'' ]; then
+if [ x"$GERRIT_CR" != x'ERROR: No metadata element by that name' ]; then
     if [ x"$GIT_REF" != x'' ]; then
 
         # Install RPMforge version of git
