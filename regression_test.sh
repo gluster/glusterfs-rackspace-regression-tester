@@ -67,11 +67,9 @@ GERRIT_CR=`metadata_retriever.py change_req 2>/dev/null`
 # Extract Git ref if there is one
 GIT_REF=`metadata_retriever.py change_ref 2>/dev/null`
 
-# TODO: Remove this once http://review.gluster.org/#/c/7564/ is merged
-# Workaround for GlusterFS release-3.x branch not compiling EPEL-7 yet
-if [ x"$GLUSTERFS_BRANCH" = x'release-3.4' -o x"$GLUSTERFS_BRANCH" = x'release-3.5' ]; then
-    rm -f /etc/mock/epel-7-x86_64.cfg
-fi
+# TODO: Remove this once mock works with EPEL-7 again
+# Workaround for some GlusterFS branches not compiling EPEL-7 yet
+rm -f /etc/mock/epel-7-x86_64.cfg
 
 # Prepare for building Gluster and running the tests
 mkdir -p /d/archived_builds >> ${COMMAND_LOG} 2>&1
