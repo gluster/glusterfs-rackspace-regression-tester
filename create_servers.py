@@ -10,7 +10,7 @@ import ConfigParser
 import pyrax
 from pygerrit.rest import GerritRestAPI
 
-version = '0.0.4'
+version = '0.0.5'
 instance_type = '1 GB Performance'
 max_servers = 1
 remove_servers = False
@@ -91,7 +91,7 @@ except getopt.GetoptError as err:
     sys.exit(2)
 
 # Parse any command line options and arguments
-ci_config_path = None
+ci_config_path = 'configs/remote_centos6.cfg'
 change_req = None
 git_branch = 'master'
 script_url = None
@@ -163,9 +163,7 @@ if not instance:
     sys.exit(2)
 
 # Read the cloud-init configuration file
-ci_config = None
-if ci_config_path:
-        ci_config = open(ci_config_path, 'r').read()
+ci_config = open(ci_config_path, 'r').read()
 
 # Add the script_url if one was given
 meta = {'test_path': ''}
@@ -213,24 +211,18 @@ username = getpass.getuser()
 for counter in range(max_servers):
     # Set the name of the VM in Rackspace
     if change_req:
-        # Name the VM after the change request
-        node_name = 'gerrit{0}'.format(change_req)
+        # Name the VM after the Gerrit change request
+        node_name = 'gerrit{0}-{1}'.format(change_req, str(counter))
     else:
         # No change request, so name the VM after the user
         node_name = '{0}{1}'.format(username, str(counter))
 
     print 'Creating {0}'.format(node_name)
-    if ci_config:
-        building_servers.append(
-            cs.servers.create(node_name, centos.id, instance.id,
-                              key_name=ssh_key_name, files=files,
-                              config_drive=True, userdata=ci_config,
-                              meta=meta))
-    else:
-        # Create a server without a cloud-init config
-        building_servers.append(
-            cs.servers.create(node_name, centos.id, instance.id,
-                              key_name=ssh_key_name, meta=meta))
+    building_servers.append(
+        cs.servers.create(node_name, centos.id, instance.id,
+                          key_name=ssh_key_name, files=files,
+                          config_drive=True, userdata=ci_config,
+                          meta=meta))
     building_passwords.append(building_servers[counter].adminPass)
 
 # Wait 20 seconds (seems to help)
