@@ -81,9 +81,10 @@ print 'Rackspace instance regression test launcher: v{0}\n'.format(version)
 
 # Check the command line
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'b:c:df:g:hn:s:t:',
-                               ['cloud_init=', 'delete', 'help',
-                                'num_servers=', 'type'])
+    opts, args = getopt.getopt(sys.argv[1:], 'b:c:df:g:hn:rs:t:',
+                               ['branch=', 'cloud_init=', 'debug', 'flavour=',
+                                'gerrit=', 'help', 'num_servers=', 'remove',
+                                'script-url=', 'test='])
 
 except getopt.GetoptError as err:
     # There was something wrong with the command line options
