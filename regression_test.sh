@@ -82,6 +82,12 @@ git clone git://forge.gluster.org/gluster-patch-acceptance-tests/gluster-patch-a
 cd /root/glusterfs >> ${COMMAND_LOG} 2>&1
 chmod 755 /root >> ${COMMAND_LOG} 2>&1
 
+# Create the archived_builds and log directories
+ADIRS="/archives/archived_builds /archives/logs" >> ${COMMAND_LOG} 2>&1
+mkdir -p $ADIRS >> ${COMMAND_LOG} 2>&1
+chown jenkins:jenkins $ADIRS >> ${COMMAND_LOG} 2>&1
+chmod 755 $ADIRS >> ${COMMAND_LOG} 2>&1
+
 # If we've been given a Gerrit CR to test, then get it ready
 if [ x"$GERRIT_CR" != x'ERROR: No metadata element by that name' ]; then
     if [ x"$GIT_REF" != x'' ]; then
