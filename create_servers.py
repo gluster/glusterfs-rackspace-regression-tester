@@ -49,7 +49,7 @@ def usage(error_string=None):
     print
     print 'To pass the servers a cloud-init configuration file, use:'
     print
-    print '  {0} --c config_file'.format(prog_name)
+    print '  {0} -c config_file'.format(prog_name)
     print
     print 'To show the available instance flavours, use:'
     print
