@@ -105,4 +105,4 @@ cp -f /opt/qa/nginx/default.conf /etc/nginx/conf.d/default.conf
 sed -i 's/# %wheel\tALL=(ALL)\tNOPASSWD/%wheel\tALL=(ALL)\tNOPASSWD/' /etc/sudoers
 
 # Indicate we've completed the script
-echo 'complete' >> ${PROGRESS_LOG}
+echo 'complete' >> ${COMMAND_LOG}
