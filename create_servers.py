@@ -239,7 +239,7 @@ for server in range(len(building_servers)):
     # Wait for the given server to become either ACTIVE or ERROR status
     finished_build = pyrax.utils.wait_until(building_servers[server],
                                             'status', ['ACTIVE', 'ERROR'],
-                                            interval=30, attempts=10)
+                                            interval=60, attempts=10)
 
     # Check which status it changed to
     if finished_build.status == 'ACTIVE':
