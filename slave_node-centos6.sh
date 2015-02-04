@@ -49,6 +49,9 @@ mkdir /home/jenkins/.ssh
 chmod 700 /home/jenkins/.ssh
 chown -R jenkins:jenkins /home/jenkins/.ssh
 
+# Change the Python glusterfs site-packages directory to Jenkins ownership
+chown jenkins:root /usr/lib/python2.6/site-packages/gluster/
+
 # Install git from RPMForge
 yum -y install http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el6.rf.x86_64.rpm
 yum -y --enablerepo=rpmforge-extras update git
@@ -103,6 +106,9 @@ cp -f /opt/qa/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 # Enable wheel group for sudo
 sed -i 's/# %wheel\tALL=(ALL)\tNOPASSWD/%wheel\tALL=(ALL)\tNOPASSWD/' /etc/sudoers
+
+# Remove qemu-img, which conflicts with glusterfs being built from source
+yum -y remove qemu-img
 
 # Indicate we've completed the script
 echo 'complete' >> ${COMMAND_LOG}
