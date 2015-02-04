@@ -10,8 +10,9 @@ import ConfigParser
 import pyrax
 from pygerrit.rest import GerritRestAPI
 
-version = '0.0.5'
-instance_type = '1 GB Performance'
+version = '0.0.6'
+instance_type = '2 GB General Purpose v1'
+os_requested = 'CentOS 6 (PVHVM)'
 max_servers = 1
 remove_servers = False
 debug_tests = False
@@ -35,6 +36,7 @@ def usage(error_string=None):
     print '  -g | --gerrit <change #>  Gerrit change request number'
     print '  -h | --help               Display usage'
     print '  -n | --num_servers #      Create # number of servers'
+    print '  -o | --os <string>        Which OS to use'
     print '  -r | --remove             Remove the servers after creating them'
     print '  -s | --script-url <URL>   Runs this script after server creation'
     print '  -t | --test <path>        Runs only a specific test'
@@ -81,7 +83,7 @@ print 'Rackspace instance regression test launcher: v{0}\n'.format(version)
 
 # Check the command line
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'b:c:df:g:hn:rs:t:',
+    opts, args = getopt.getopt(sys.argv[1:], 'b:c:df:g:hn:o:rs:t:',
                                ['branch=', 'cloud_init=', 'debug', 'flavour=',
                                 'gerrit=', 'help', 'num_servers=', 'remove',
                                 'script-url=', 'test='])
@@ -113,6 +115,8 @@ for o, a in opts:
         change_req = a
     elif o in ("-n", "--num_servers"):
         max_servers = int(a)
+    elif o in ("-o", "--os"):
+        os_requested = a
     elif o in ("-r", "--remove"):
         remove_servers = True
     elif o in ("-s", "--script-url"):
@@ -121,10 +125,6 @@ for o, a in opts:
         test_path = a
     else:
         assert False, "Unknown command line option"
-
-if instance_type != 'list':
-    print "Creating {0} x {1} servers...".format(max_servers, instance_type)
-    print
 
 # Read config file
 config_file_path = os.path.join('config')
@@ -139,12 +139,22 @@ pyrax.set_setting('identity_type', 'rackspace')
 pyrax.set_credential_file(creds_file)
 cs = pyrax.cloudservers
 
-# Select CentOS 6.5
-centos = None
+# Select the Operating System
+os_selected = None
 os_list = cs.images.list()
+if os_requested == 'list':
+    print 'Available OSs'
+    for os_option in os_list:
+        print os_option.name
+    print
+    sys.exit(0)
 for os_option in os_list:
-    if os_option.name == 'CentOS 6.5':
-        centos = os_option
+    if os_option.name == os_requested:
+        os_instance = os_option
+if not os_instance:
+    print('ERROR: The requested OS "{0}" '
+          'does not exist'.format(os_requested))
+    sys.exit(2)
 
 # Select an instance type
 instance = None
@@ -162,6 +172,10 @@ if not instance:
     print('ERROR: The requested instance type "{0}" '
           'does not exist'.format(instance_type))
     sys.exit(2)
+
+if instance_type != 'list':
+    print "Creating {0} x {1} servers...".format(max_servers, instance_type)
+    print
 
 # Read the cloud-init configuration file
 ci_config = open(ci_config_path, 'r').read()
@@ -220,7 +234,7 @@ for counter in range(max_servers):
 
     print 'Creating {0}'.format(node_name)
     building_servers.append(
-        cs.servers.create(node_name, centos.id, instance.id,
+            cs.servers.create(node_name, os_instance.id, instance.id,
                           key_name=ssh_key_name, files=files,
                           config_drive=True, userdata=ci_config,
                           meta=meta))
