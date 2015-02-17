@@ -40,6 +40,9 @@ service ntpdate start
 # Install OpenJDK, needed for Jenkins slaves
 yum -y install java-1.7.0-openjdk
 
+# Remove the OS provided GlusterFS packages, which conflicts with GlusterFS used in testing
+yum remove -y glusterfs*
+
 # Create the Jenkins user
 useradd -G wheel jenkins
 chmod 755 /home/jenkins
