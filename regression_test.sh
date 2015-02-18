@@ -88,7 +88,6 @@ chmod 755 /root >> ${COMMAND_LOG} 2>&1
 # Create the archived_builds and log directories
 ADIRS="/archives/archived_builds /archives/logs" >> ${COMMAND_LOG} 2>&1
 mkdir -p $ADIRS >> ${COMMAND_LOG} 2>&1
-chown jenkins:jenkins $ADIRS >> ${COMMAND_LOG} 2>&1
 chmod 755 $ADIRS >> ${COMMAND_LOG} 2>&1
 
 # If we've been given a Gerrit CR to test, then get it ready
