@@ -37,6 +37,9 @@ sed -i "s/Defaults    requiretty/#Defaults    requiretty/" /etc/sudoers
 # Create the mock user, needed for the regression tests
 useradd -g mock mock >> ${COMMAND_LOG} 2>&1
 
+# Remove qemu-img, which conflicts with glusterfs being built from source
+yum -y remove qemu-img
+
 # Create the testing filesystem mount point
 mkdir /d >> ${COMMAND_LOG} 2>&1
 
