@@ -27,6 +27,10 @@ export PYTHONPATH="${BASE}/lib/python${PY_VER}/site-packages:${PYTHONPATH}"
 # Set HOME, which some tests seem to need
 export HOME='/root'
 
+# Remove IPv6 and eth1 interface from /etc/hosts
+sed -i 's/^10\./#10\./' /etc/hosts
+sed -i 's/^2001/#2001/' /etc/hosts
+
 # Set the hostname of the server
 ip addr show dev eth0 |grep 'inet '|cut -d ' ' -f 6|sed "s/\/24/   `hostname`/"|sed "s/.novalocal/.cloud.gluster.org/" >> /etc/hosts 2> ${COMMAND_LOG}
 hostname `hostname|sed "s/.novalocal/.cloud.gluster.org/"` >> ${COMMAND_LOG} 2>&1
