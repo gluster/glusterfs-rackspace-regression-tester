@@ -27,13 +27,14 @@ export PYTHONPATH="${BASE}/lib/python${PY_VER}/site-packages:${PYTHONPATH}"
 # Set HOME, which some tests seem to need
 export HOME='/root'
 
-# Remove IPv6 and eth1 interface from /etc/hosts
-sed -i 's/^10\./#10\./' /etc/hosts
-sed -i 's/^2001/#2001/' /etc/hosts
+# Recreate the /etc/hosts file
+IP_ADDR=`ip addr show eth0|grep 'inet '|cut -d \  -f 6|cut -d \/ -f 1`
+HOST_NAME=`hostname -s`
+echo '127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4' > /etc/hosts 2> ${COMMAND_LOG}
+echo "$IP_ADDR $HOST_NAME.rack.gluster.org $HOST_NAME" >> /etc/hosts 2> ${COMMAND_LOG}
 
 # Set the hostname of the server
-ip addr show dev eth0 |grep 'inet '|cut -d ' ' -f 6|sed "s/\/24/   `hostname`/"|sed "s/.novalocal/.cloud.gluster.org/" >> /etc/hosts 2> ${COMMAND_LOG}
-hostname `hostname|sed "s/.novalocal/.cloud.gluster.org/"` >> ${COMMAND_LOG} 2>&1
+hostname $HOST_NAME.rack.gluster.org >> ${COMMAND_LOG} 2>&1
 
 # Turn off requiretty for sudo, needed for rpm.t to succeed
 sed -i "s/Defaults    requiretty/#Defaults    requiretty/" /etc/sudoers
@@ -73,12 +74,6 @@ GERRIT_CR=`metadata_retriever.py change_req 2>/dev/null`
 
 # Extract Git ref if there is one
 GIT_REF=`metadata_retriever.py change_ref 2>/dev/null`
-
-# TODO: Remove this once release-3.4 branch compiles EPEL-7 ok
-# Workaround for GlusterFS release-3.4 branch not compiling EPEL-7 yet
-if [ x"$GLUSTERFS_BRANCH" = x'release-3.4' ]; then
-    rm -f /etc/mock/epel-7-x86_64.cfg
-fi
 
 # Prepare for building Gluster and running the tests
 mkdir -p /d/archived_builds >> ${COMMAND_LOG} 2>&1
