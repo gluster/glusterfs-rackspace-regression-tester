@@ -113,5 +113,8 @@ sed -i 's/# %wheel\tALL=(ALL)\tNOPASSWD/%wheel\tALL=(ALL)\tNOPASSWD/' /etc/sudoe
 # Remove qemu-img, which conflicts with glusterfs being built from source
 yum -y remove qemu-img
 
+# Enable yum-cron, so updates are automatically installed
+chkconfig yum-cron on
+
 # Indicate we've completed the script
 echo 'complete' >> ${COMMAND_LOG}
