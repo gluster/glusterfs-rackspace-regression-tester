@@ -36,6 +36,10 @@ echo "$IP_ADDR $HOST_NAME.rack.gluster.org $HOST_NAME" >> /etc/hosts 2> ${COMMAN
 # Set the hostname of the server
 hostname $HOST_NAME.rack.gluster.org >> ${COMMAND_LOG} 2>&1
 
+# Turn off plymouthd, which seems to eat CPU
+sed -i 's/ rhgb//' /boot/grub/grub.conf
+sed -i 's/ quiet//' /boot/grub/grub.conf
+
 # Turn off requiretty for sudo, needed for rpm.t to succeed
 sed -i "s/Defaults    requiretty/#Defaults    requiretty/" /etc/sudoers
 
