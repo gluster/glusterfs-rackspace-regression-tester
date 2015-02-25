@@ -277,8 +277,8 @@ for counter in range(len(server_list)):
     print 'Server ID: {0}'.format(server_list[counter].id)
     print 'IPv4 address: {0}'.format(ip_addr)
     print 'Root password: {0}'.format(admin_passwords[counter])
-    print('SSH command: ssh -l root -i {0} -o UserKnownHostsFile=/dev/null '
-          '-o StrictHostKeyChecking=no {1}'.format(ssh_key_file, ip_addr))
+    print('SSH command: ssh -i {0} -o UserKnownHostsFile=/dev/null '
+          '-o StrictHostKeyChecking=no root@{1}'.format(ssh_key_file, ip_addr))
     print
 
 # If requested, remove the servers (useful when testing)
