@@ -240,8 +240,11 @@ for counter in range(max_servers):
                           meta=meta))
     building_passwords.append(building_servers[counter].adminPass)
 
-# Wait 20 seconds (seems to help)
-time.sleep(20)
+    # Wait 30 seconds (seems to help)
+    if max_servers != 1:
+        time.sleep(30)
+
+# Print a linebreak, for better visual spacing
 print
 
 # Wait until all of the servers are running
