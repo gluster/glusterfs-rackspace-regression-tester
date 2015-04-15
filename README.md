@@ -98,7 +98,7 @@ try again.  It'll probably work.
 Usage
 -----
 
-For just doing straightforward regression testing on CentOS 6.5 with a single
+For just doing straightforward regression testing on CentOS 6.x with a single
 VM, use:
 
     $ ./create_servers.py -c remote_centos6.cfg
